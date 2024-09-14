@@ -57,11 +57,11 @@ def read_map_data(directory_path):
             if nc_data[i][j] != 0:
               # Convert lat and lon to x,y grid points, and check for dimensions
               if len(lat.shape) == 1:
-                x = lat[i]/.01
-                y = lon[j]/.01
+                x = int(lat[i]/.01)
+                y = int(lon[j]/.01)
               else:
-                x = lat[i][j]/.01
-                y = lon[i][j]/.01
+                x = int(lat[i][j]/.01)
+                y = int(lon[i][j]/.01)
 
               # Assign to grid
               ndvi_grid[y][x] = nc_data[i][j]
