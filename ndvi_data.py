@@ -35,12 +35,14 @@ def read_map_data(directory_path):
         nc_data = nc_file.variables['NDVI_TOC'][:,:]
 
         # Check and determine if lat and lon are 2-dimensional
+        lat = nc_file.variables['latitude']
+        lon = nc_file.variables['longitude']
         if len(lat.shape) == 1:
-          lat = nc_file.variables['latitude'][:]
-          lon = nc_file.variables['longitude'][:]
+          lat = lat[:]
+          lon = lon[:]
         elif len(lat.shape) == 2:
-          lat = nc_file.variables['latitude'][:,:]
-          lon = nc_file.variables['longitude'][:,:]
+          lat = lat[:,:]
+          lon = lon[:,:]
 
         # Unmask the data
         nc_data = np.array(nc_data)
