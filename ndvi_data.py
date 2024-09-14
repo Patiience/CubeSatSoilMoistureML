@@ -22,6 +22,9 @@ def read_map_data(directory_path):
 
         #file_path = "/data01/jyin/NOAA20VI/2019/20190715/VI-DLY-REG_v1r2_j01_s20190713_e20190713_c201907150108040.nc"
 
+        # Print statement to track progress when running program
+        print(f"Reading data from {file_path}")
+
         # Create Dataset Object & open the .nc file(s)
         nc_file = Dataset(file_path)
 
