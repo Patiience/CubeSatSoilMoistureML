@@ -61,6 +61,9 @@ if __name__ == "__main__":
     # File path
     file_path = os.path.join(directory_path, files)
 
+    # Print statement for tracking progress
+    print(f"Creating map for {file_path}")
+
     # Load in data from binary file
     with open(file_path, 'rb') as f:
           ndvi_grid = pickle.load(f)
