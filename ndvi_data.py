@@ -31,10 +31,16 @@ def read_map_data(directory_path):
         # Initialize NDVI grid, for 1 km resolution
         ndvi_grid = np.zeros((18000, 36000))
 
-        # Retrieve NDVI_TOC data, in 2 dimensional (lat, lon), as well as lat and lon coordinates
+        # Retrieve NDVI_TOC data, in 2 dimensional (lat, lon)
         nc_data = nc_file.variables['NDVI_TOC'][:,:]
-        lat = nc_file.variables['latitude'][:,:]
-        lon = nc_file.variables['longitude'][:,:]
+
+        # Check and determine if lat and lon are 2-dimensional
+        if len(lat.shape) == 1:
+          lat = nc_file.variables['latitude'][:]
+          lon = nc_file.variables['longitude'][:]
+        elif len(lat.shape) == 2:
+          lat = nc_file.variables['latitude'][:,:]
+          lon = nc_file.variables['longitude'][:,:]
 
         # Unmask the data
         nc_data = np.array(nc_data)
@@ -47,9 +53,13 @@ def read_map_data(directory_path):
           for j in range(len(nc_data[0])):
             # If already zero, don't need to update grid
             if nc_data[i][j] != 0:
-              # Convert lat and lon to x,y grid points
-              x = lat[i][j]/.01
-              y = lon[i][j]/.01
+              # Convert lat and lon to x,y grid points, and check for dimensions
+              if len(lat.shape) == 1:
+                x = lat[i]/.01
+                y = lon[j]/.01
+              else:
+                x = lat[i][j]/.01
+                y = lon[i][j]/.01
 
               # Assign to grid
               ndvi_grid[y][x] = nc_data[i][j]
