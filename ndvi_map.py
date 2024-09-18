@@ -14,22 +14,25 @@ def create_map(ndvi_grid, file_name):
 
   # Create a Basemap instance
   m = Basemap(projection='cyl', resolution='c', 
-              llcrnrlat=-90, urcrnrlat=90, 
-              llcrnrlon=-180, urcrnrlon=180)
+              llcrnrlat=20, urcrnrlat=60, 
+              llcrnrlon=-140, urcrnrlon=-60)
 
   # Draw coastlines and other map features
   m.drawcoastlines()
   m.drawcountries()
-  m.drawparallels(np.arange(-90, 91, 30), labels=[1,0,0,0])
-  m.drawmeridians(np.arange(-180, 181, 60), labels=[0,0,0,1])
+  m.drawparallels(np.arange(20, 61, 10), labels=[1,0,0,0])
+  m.drawmeridians(np.arange(-140, -59, 20), labels=[0,0,0,1])
 
   # Create latitude and longitude arrays that match grid
-  lon = np.linspace(-180, 180, ndvi_grid.shape[1])
-  lat = np.linspace(-90, 90, ndvi_grid.shape[0])
+  lon = np.linspace(-140, -60, ndvi_grid.shape[1])
+  lat = np.linspace(20, 60, ndvi_grid.shape[0])
 
   # Convert the latitude and longitude grid to map projection coordinates
   lon, lat = np.meshgrid(lon, lat)
   x, y = m(lon, lat)
+
+  # Mask values equal to -9999
+   ndvi_grid = np.ma.masked_where(ndvi_grid == -9999, ndvi_grid)
 
   # Plot the data
   mp = m.pcolormesh(x, y, ndvi_grid, shading='auto', cmap='viridis', vmin=0, vmax=1)  # Replace 'data' with your actual data
