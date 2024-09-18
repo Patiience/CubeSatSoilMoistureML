@@ -28,8 +28,10 @@ def read_map_data(directory_path):
         # Create Dataset Object & open the .nc file(s)
         nc_file = Dataset(file_path)
 
-        # Initialize NDVI grid, for 1 km resolution
-        ndvi_grid = np.zeros((18000, 36000))
+        # Initialize NDVI grid, for 1 km resolution, which divide by .01
+        # CONUS domain is from 20, 60 lat & -140, -60 lon
+        # Note: grid is longitude by latitude
+        ndvi_grid = np.zeros((8000, 4000))
 
         # Retrieve NDVI_TOC data, in 2 dimensional (lat, lon)
         nc_data = nc_file.variables['NDVI_TOC'][:,:]
@@ -57,14 +59,22 @@ def read_map_data(directory_path):
             if nc_data[i][j] != 0:
               # Convert lat and lon to x,y grid points, and check for dimensions
               if len(lat.shape) == 1:
+                # Normalize longitude
+                lon_norm = (lon[j] + 180) % 360 - 180
                 x = int(lat[i]/.01)
-                y = int(lon[j]/.01)
+                y = int(lon_norm/.01)
               else:
+                # Normalize longitude
+                lon_norm = (lon[i][j] + 180) % 360 - 180
                 x = int(lat[i][j]/.01)
-                y = int(lon[i][j]/.01)
+                y = int(lon_norm/.01)
 
-              # Assign to grid
-              ndvi_grid[y][x] = nc_data[i][j]
+              # Assign to grid if it falls within the domain
+              if (x >= 2000 and x < 6000) and (y >= -14000 and y < -6000):
+                # Adjust x and y to fit into grid indices
+                x = x - 2000
+                y = y + 14000
+                ndvi_grid[y][x] = nc_data[i][j]
 
         # For each file, dump into binary file in data01 directory
         binary_path = '/data01/dlu12/NDVI_Binaries'
@@ -76,6 +86,11 @@ def read_map_data(directory_path):
 
         # Close the file
         nc_file.close()
+
+        break
+      break
+    break
+
 
 # Main function
 if __name__ == "__main__":
