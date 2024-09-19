@@ -75,8 +75,8 @@ def read_map_data(directory_path):
 
         # For each file, dump into binary file in data01 directory
         binary_path = '/data01/dlu12/NDVI_Binaries'
-        binary_file = f'NOAA20_TOC_NDVI_{files}.dat'
-        binary_path = os.path.join(data_path, binary_file)
+        binary_file = f'NOAA20_TOC_NDVI_{date}.dat'
+        binary_path = os.path.join(binary_path, binary_file)
 
         with open(binary_path, 'wb') as f:
           pickle.dump(ndvi_grid, f)
