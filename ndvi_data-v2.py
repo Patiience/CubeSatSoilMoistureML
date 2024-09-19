@@ -34,24 +34,27 @@ def read_map_data(directory_path):
         ndvi_grid = np.zeros((8000, 4000))
 
         # Retrieve NDVI_TOC data, in 2-dimensional (lat, lon)
-        nc_data = nc_file.variables['NDVI_TOC'][:,:]
-
-        # Check and determine if lat and lon are 2-dimensional
-        lat = nc_file.variables['latitude']
-        lon = nc_file.variables['longitude']
-        if len(lat.shape) == 1:
-          # Broadcast arrays to 2d array
-          lat = np.tile(lat[:,np.newaxis], (1, nc_data.shape[1]))
-          lon = np.broadcast_to(lat[np.newaxis, :], (nc_data.shape[0], nc_data.shape[1]))
-        elif len(lat.shape) == 2:
-          lat = lat[:,:]
-          lon = lon[:,:]
+        nc_data = nc_file.variables['NDVI_TOC'][:]
 
         # Unmask the data
         nc_data = np.array(nc_data)
 
         # Turn FILL_VALUE into -9999
         nc_data[nc_data == -32768] = -9999
+
+        # Retrive latitude and longitude data, which could be 2D or 1D, but code will get full array regardless
+        lat = nc_file.variables['latitude'][:]
+        lon = nc_file.variables['longitude'][:]
+
+        # If array is 1D, make it so it is 2D in order to carry out functions later
+        if len(lat.shape) == 1:
+          # Broadcast arrays to 2d array
+          lat = np.tile(lat[:,np.newaxis], (1, nc_data.shape[1]))
+          lon = np.broadcast_to(lon[np.newaxis, :], (nc_data.shape[0], nc_data.shape[1]))
+
+        # Copy the arrays, as tile() and broadcast_to() functions lead to read-only for some reason
+        lat = np.copy(lat)
+        lon = np.copy(lon)
 
         # Update values less than -180 and offset by 360
         lon[lon < -180] += 360
