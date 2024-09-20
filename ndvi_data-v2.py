@@ -63,15 +63,15 @@ def read_map_data(directory_path):
         x_indices = (lat / 0.01).astype(int)
         y_indices = (lon / 0.01).astype(int)
 
-        # Mask to ignore zero values and indicies that do not fall within NWM domain
-        mask = (nc_data != 0) & (x_indices >= 2000) & (x_indices < 6000) & (y_indices >= -14000) & (y_indices < -6000)
+        # Mask to ignore indicies that do not fall within NWM domain
+        mask = (x_indices >= 2000) & (x_indices < 6000) & (y_indices >= -14000) & (y_indices < -6000)
 
         # Adjust x and y indices to fit into grid indices
         adjusted_x_indices = x_indices - 2000
         adjusted_y_indices = y_indices + 14000
 
         # Assign to grid using masked indices, which will get rid of corresponding indices
-        ndvi_grid[adjusted_y_indices[mask], adjusted_x_indices[mask]] = nc_data[mask]
+        ndvi_grid[adjusted_x_indices[mask], adjusted_y_indices[mask]] = nc_data[mask]
 
         # For each file, dump into binary file in data01 directory
         binary_path = '/data01/dlu12/NDVI_Binaries'
