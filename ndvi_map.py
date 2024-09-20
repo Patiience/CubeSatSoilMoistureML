@@ -1,5 +1,5 @@
 # Import the necessary libraries
-import matplotlib as plt
+import matplotlib.pyplot as plt
 import pickle
 from mpl_toolkits.basemap import Basemap
 import os
@@ -32,7 +32,7 @@ def create_map(ndvi_grid, file_name):
   x, y = m(lon, lat)
 
   # Mask values equal to -9999
-   ndvi_grid = np.ma.masked_where(ndvi_grid == -9999, ndvi_grid)
+  ndvi_grid = np.ma.masked_where(ndvi_grid == -9999, ndvi_grid)
 
   # Plot the data
   mp = m.pcolormesh(x, y, ndvi_grid, shading='auto', cmap='viridis', vmin=0, vmax=1)  # Replace 'data' with your actual data
@@ -47,8 +47,6 @@ def create_map(ndvi_grid, file_name):
 
   # Update labels
   plt.title(f'NDVI for {date}')
-  plt.xlabel('Longitude')
-  plt.ylabel('Latitude')
 
   # Save the file to directory in data01
   plt.savefig(f'/data01/dlu12/NDVI_Maps/NDVI_{date}.png')
@@ -60,12 +58,12 @@ if __name__ == "__main__":
   directory_path = "/data01/dlu12/NDVI_Binaries"
 
   # Loop through files in directory
-  for files in os.dir(directory_path):
+  for files in os.listdir(directory_path):
     # File path
     file_path = os.path.join(directory_path, files)
 
     # Print statement for tracking progress
-    print(f"Creating map for {file_path}")
+    print(f"Creating map for {files}")
 
     # Load in data from binary file
     with open(file_path, 'rb') as f:
