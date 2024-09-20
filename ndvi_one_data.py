@@ -12,69 +12,80 @@ def read_map_data(directory_path, date):
     # Path to file
     file_path = os.path.join(directory_path, files)
 
-    #file_path = "/data01/jyin/NOAA20VI/2019/20190715/VI-DLY-REG_v1r2_j01_s20190713_e20190713_c201907150108040.nc"
+    # Split file name into parts to parse
+    file_parts = files.split("_")
 
-    # Print statement to track progress when running program
-    print(f"Reading data from {file_path}")
+    # Get the start and end dates of the file
+    file_start = (file_parts[3])[1:]
+    file_end = (file_parts[4])[1:]
 
-    # Create Dataset Object & open the .nc file(s)
-    nc_file = Dataset(file_path)
+    # Check if it matches the date of the directory, and if so retrieve its data
+    # If it doesn't match, move onto the next file
+    if (file_start == date) and (file_end == date):
+      # Print statement to track progress when running program
+      print(f"Reading data from {file_path}")
 
-    # Initialize NDVI grid, for 1 km resolution, which divide by .01
-    # CONUS domain is from 20, 60 lat & -140, -60 lon
-    # Note: grid is longitude by latitude
-    ndvi_grid = np.zeros((8000, 4000))
+      # Create Dataset Object & open the .nc file(s)
+      nc_file = Dataset(file_path)
 
-    # Retrieve NDVI_TOC data, in 2-dimensional (lat, lon)
-    nc_data = nc_file.variables['NDVI_TOC'][:]
+      # Initialize NDVI grid, for 1 km resolution, which divide by .01
+      # CONUS domain is from 20, 60 lat & -140, -60 lon
+      # Note: grid is longitude by latitude
+      ndvi_grid = np.zeros((8000, 4000))
 
-    # Unmask the data
-    nc_data = np.array(nc_data)
+      # Retrieve NDVI_TOC data, in 2-dimensional (lat, lon)
+      nc_data = nc_file.variables['NDVI_TOC'][:]
 
-    # Turn FILL_VALUE into -9999
-    nc_data[nc_data == -32768] = -9999
+      # Unmask the data
+      nc_data = np.array(nc_data)
 
-    # Retrive latitude and longitude data, which could be 2D or 1D, but code will get full array regardless
-    lat = nc_file.variables['latitude'][:]
-    lon = nc_file.variables['longitude'][:]
+      # Turn FILL_VALUE into -9999
+      nc_data[nc_data == -32768] = -9999
 
-    # If array is 1D, make it so it is 2D in order to carry out functions later
-    if len(lat.shape) == 1:
-      # Broadcast arrays to 2d array
-      lat = np.tile(lat[:,np.newaxis], (1, nc_data.shape[1]))
-      lon = np.broadcast_to(lon[np.newaxis, :], (nc_data.shape[0], nc_data.shape[1]))
+      # Retrive latitude and longitude data, which could be 2D or 1D, but code will get full array regardless
+      lat = nc_file.variables['latitude'][:]
+      lon = nc_file.variables['longitude'][:]
 
-    # Copy the arrays, as tile() and broadcast_to() functions lead to read-only for some reason
-    lat = np.copy(lat)
-    lon = np.copy(lon)
+      # If array is 1D, make it so it is 2D in order to carry out functions later
+      if len(lat.shape) == 1:
+        # Broadcast arrays to 2d array
+        lat = np.tile(lat[:,np.newaxis], (1, nc_data.shape[1]))
+        lon = np.broadcast_to(lon[np.newaxis, :], (nc_data.shape[0], nc_data.shape[1]))
 
-    # Update values less than -180 and offset by 360
-    lon[lon < -180] += 360
+      # Copy the arrays, as tile() and broadcast_to() functions lead to read-only for some reason
+      lat = np.copy(lat)
+      lon = np.copy(lon)
 
-    # Convert lat and lon to grid indices
-    x_indices = (lat / 0.01).astype(int)
-    y_indices = (lon / 0.01).astype(int)
+      # Update values less than -180 and offset by 360
+      lon[lon < -180] += 360
 
-    # Mask to ignore zero values and indicies that do not fall within NWM domain
-    mask = (nc_data != 0) & (x_indices >= 2000) & (x_indices < 6000) & (y_indices >= -14000) & (y_indices < -6000)
+      # Convert lat and lon to grid indices
+      x_indices = (lat / 0.01).astype(int)
+      y_indices = (lon / 0.01).astype(int)
 
-    # Adjust x and y indices to fit into grid indices
-    adjusted_x_indices = x_indices - 2000
-    adjusted_y_indices = y_indices + 14000
+      # Mask to ignore indicies that do not fall within NWM domain
+      mask = (x_indices >= 2000) & (x_indices < 6000) & (y_indices >= -14000) & (y_indices < -6000)
 
-    # Assign to grid using masked indices, which will get rid of corresponding indices
-    ndvi_grid[adjusted_y_indices[mask], adjusted_x_indices[mask]] = nc_data[mask]
+      # Adjust x and y indices to fit into grid indices
+      adjusted_x_indices = x_indices - 2000
+      adjusted_y_indices = y_indices + 14000
 
-    # For each file, dump into binary file in data01 directory
-    binary_path = '/data01/dlu12/NDVI_Binaries'
-    binary_file = f'NOAA20_TOC_NDVI_{date}.dat'
-    binary_path = os.path.join(binary_path, binary_file)
+      # Assign to grid using masked indices, which will get rid of corresponding indices
+      ndvi_grid[adjusted_x_indices[mask], adjusted_y_indices[mask]] = nc_data[mask]
 
-    with open(binary_path, 'wb') as f:
-      pickle.dump(ndvi_grid, f)
+      # For each file, dump into binary file in data01 directory
+      binary_path = '/data01/dlu12/NDVI_Binaries'
+      binary_file = f'NOAA20_TOC_NDVI_{date}.dat'
+      binary_path = os.path.join(binary_path, binary_file)
 
-    # Close the file
-    nc_file.close()
+      with open(binary_path, 'wb') as f:
+        pickle.dump(ndvi_grid, f)
+
+      # Close the file
+      nc_file.close()
+
+      # Break out of loop, since there is only one file to read for each date directory
+      break
 
 
 # Main function
