@@ -31,7 +31,7 @@ def read_map_data(directory_path, date):
       # Initialize NDVI grid, for 1 km resolution, which divide by .01
       # CONUS domain is from 20, 60 lat & -140, -60 lon
       # Note: grid is longitude by latitude
-      ndvi_grid = np.zeros((8000, 4000))
+      ndvi_grid = np.zeros((4000, 8000))
 
       # Retrieve NDVI_TOC data, in 2-dimensional (lat, lon)
       nc_data = nc_file.variables['NDVI_TOC'][:]
