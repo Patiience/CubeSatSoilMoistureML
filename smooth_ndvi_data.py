@@ -62,7 +62,7 @@ def read_map_data(directory_path):
     file_date = str(getattr(nc_file1, 'time_coverage_start', None))[:8]
 
     # Initialize NDVI grid, for 1 km resolution, which divide by .01
-    # CONUS domain is from 20, 60 lat & -140, -60 lon
+    # NWM domain is from 20, 60 lat & -140, -60 lon
     # Note: grid is latitude by longitude
     ndvi_grid1 = np.zeros((4000, 8000))
     ndvi_grid2 = np.zeros((4000, 8000))
