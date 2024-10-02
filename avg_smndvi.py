@@ -158,9 +158,9 @@ def calc_avg(directory_path):
             val_week2 += 1
 
             # Assign to grid using masked indices, which will get rid of corresponding indices
-            maryland_grid = ndvi_grid_day[[md_lat1: md_lat2 + 1], [md_lon1: md_lon2 + 1]]
-            texas_grid = ndvi_grid_day[[tx_lat1: tx_lat2 + 1], [tx_lon1: tx_lon2 + 1]]
-            arizona_grid = ndvi_grid_day[[az_lat1: az_lat2 + 1], [az_lon1: az_lon2 + 1]]
+            maryland_grid = ndvi_grid_day[md_lat1: md_lat2 + 1, md_lon1: md_lon2 + 1]
+            texas_grid = ndvi_grid_day[tx_lat1: tx_lat2 + 1, tx_lon1: tx_lon2 + 1]
+            arizona_grid = ndvi_grid_day[az_lat1: az_lat2 + 1, az_lon1: az_lon2 + 1]
 
             # Calculate Averages for Each Region
             avg_md = np.mean(maryland_grid)
