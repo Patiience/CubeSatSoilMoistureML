@@ -118,22 +118,22 @@ def calc_avg(directory_path):
         # Arizona: 31 to 37 lat, -114 to -109 lon
 
         # Intialize lat and lon range for Maryland-ish region
-        md_lat1 = (37 / 0.01).astype(np.int32)
-        md_lat2 = (39 / 0.01).astype(np.int32)
-        md_lon1 = (-79 / 0.01).astype(np.int32)
-        md_lon2 = (-75 / 0.01).astype(np.int32)
+        md_lat1 = int(37 / 0.01)
+        md_lat2 = int(39 / 0.01)
+        md_lon1 = int(-79 / 0.01)
+        md_lon2 = int(-75 / 0.01)
 
         # Intialize lat and lon range for Texas-ish region
-        tx_lat1 = (25 / 0.01).astype(np.int32)
-        tx_lat2 = (36 / 0.01).astype(np.int32)
-        tx_lon1 = (-106 / 0.01).astype(np.int32)
-        tx_lon2 = (-93 / 0.01).astype(np.int32)
+        tx_lat1 = int(25 / 0.01)
+        tx_lat2 = int(36 / 0.01)
+        tx_lon1 = int(-106 / 0.01)
+        tx_lon2 = int(-93 / 0.01)
 
         # Intialize lat and lon range for Arizona-ish region
-        az_lat1 = (31 / 0.01).astype(np.int32)
-        az_lat2 = (37 / 0.01).astype(np.int32)
-        az_lon1 = (-114 / 0.01).astype(np.int32)
-        az_lon2 = (-109 / 0.01).astype(np.int32)
+        az_lat1 = int(31 / 0.01)
+        az_lat2 = int(37 / 0.01)
+        az_lon1 = int(-114 / 0.01)
+        az_lon2 = int(-109 / 0.01)
 
         # Adjust lat and lon values of each region to fit into grid indices
         md_lat1, md_lat2 = md_lat1 - 2000, md_lat2 - 2000
