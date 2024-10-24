@@ -15,7 +15,6 @@ def read_map_data(directory_path):
   directory = os.listdir(directory_path)
   sorted_directory = sorted(directory)
 
-
   # Variables to keep track of files being read
   file_name1 = ""
   file_name2 = ""
@@ -30,19 +29,9 @@ def read_map_data(directory_path):
       # For testing purposes and to ensure no files were skipped
       print(f"File Start Check: {file_name1}")
 
-      # Split file name into parts to parse
-      file_parts1 = file_name1.split(".")
-
-      # Get the year of the file
-      file_year = (file_parts1[-3])[1:5]
-
-      # Check if within 2019-2023 years to begin collection, else don't and continue until find first 2019 file
-      if file_year == "2019":
-        # Increment to avoid running this if statement again and also continue onto next iteration
-        count += 1
-        continue
-      else:
-        continue
+      # Continue on to move to next iteration, need second file
+      count += 1
+      continue
 
     # Set filename for second file
     file_name2 = files
@@ -140,7 +129,7 @@ def read_map_data(directory_path):
       date = date_obj.strftime(date_format)
 
       # For each file, dump into binary file in data01 directory
-      binary_path = '/data01/dlu12/NDVI_Binaries'
+      binary_path = '/data01/dlu12/All_SMNDVI_Binaries'
       binary_file = f'SMNDVI_{date}.dat'
       binary_path = os.path.join(binary_path, binary_file)
 
@@ -150,15 +139,6 @@ def read_map_data(directory_path):
     # Close the files
     nc_file1.close()
     nc_file2.close()
-
-    # Split second file name into parts to parse
-    file_parts2 = file_name2.split(".")
-    # Get the year of the second file
-    file_year2 = (file_parts2[-3])[1:5]
-
-    # Check to see if second file is beginning of 2024, if so we can end collection, else continue
-    if file_year2 == "2024":
-      break
 
     # Update file names, now second file will be the start file
     file_name1 = file_name2
