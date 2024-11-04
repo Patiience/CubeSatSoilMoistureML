@@ -13,11 +13,14 @@ def read_data(directory_path, files):
     file_path = os.path.join(directory_path, filename)
 
     # Read file and reshape afterward
-    if data_type != "LandCover":
+    if data_type == "Elevation" and data_type == "SlopeType":
       data = np.fromfile(file_path, dtype='>f4')  # '>f4' specifies big-endian float32
       data = data.reshape((15000,36000))
-    else:
-      data = np.fromfile(file_path, dtype=np.float32) # Default little-endian
+    elif data_type == "SoilTexture":
+      data = np.fromfile(file_path, dtype='>i4')  # '>i4' specifies big-endian int32
+      data = data.reshape((15000,36000))
+    elif data_type == "LandCover":
+      data = np.fromfile(file_path, dtype=np.int32) # Default little-endian
       data = data.reshape((18000,36000)) # Landcover covers whole global domain
       data = np.flipud(data)  # Flip LandCover data since it's upside down
 
