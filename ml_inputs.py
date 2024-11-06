@@ -13,7 +13,7 @@ def read_data(directory_path, files):
     file_path = os.path.join(directory_path, filename)
 
     # Read file and reshape afterward
-    if data_type == "Elevation" and data_type == "SlopeType":
+    if data_type == "Elevation" or data_type == "SlopeType":
       data = np.fromfile(file_path, dtype='>f4')  # '>f4' specifies big-endian float32
       data = data.reshape((15000,36000))
     elif data_type == "SoilTexture":
@@ -39,53 +39,35 @@ def read_data(directory_path, files):
     # Mask -9999
     data = np.ma.masked_equal(data, -9999)
 
-    # Calculate & print some summary statistics
-    mean = np.mean(data) 
-    median = np.median(data) 
-    minimum = np.min(data) 
-    maximum = np.max(data) 
+    # Need to upscale the data from 1km to 5km
+    if data_type == "Elevation" or data_type == "SlopeType":
+      # Define the size of each grid (5x5 for converting 1 km to 5 km)
+      grid_size = 5
 
-    print(f"{data_type} Mean: {mean},")
-    print(f"{data_type} Median: {median},")
-    print(f"{data_type} Min: {minimum},")
-    print(f"{data_type} Max: {maximum}")
+      # Calculate the dimensions of the new 5 km resolution array
+      # Note: Using the ranges of the domain
+      new_rows = int((90 - (-60)) / 0.05)
+      new_cols = int((180 - (-180)) / 0.05)
 
-    # Plot data to visualize it
-    # Plot the data using matplotlib
-    plt.figure(figsize=(10, 5))
+      # Initialize an array to store the 5 km data
+      data_5km = np.zeros((new_rows, new_cols), dtype=np.float32)
 
-    # Create a Basemap instance
-    m = Basemap(projection='cyl', resolution='c', 
-                llcrnrlat=-60, urcrnrlat=90, 
-                llcrnrlon=-180, urcrnrlon=180)
+      # Iterate through each 5x5 grid, calculate the mean, and store in the new array
+      for i in range(new_rows):
+          for j in range(new_cols):
+              # Extract the 5x5 grid
+              grid = data[i*grid_size:(i+1)*grid_size, j*grid_size:(j+1)*grid_size]
+              
+              # Calculate the mean of the 5x5 grid
+              grid_mean = np.mean(grid)
+              
+              # Assign the mean value to the corresponding position in the 5 km array
+              data_5km[i, j] = grid_mean
 
-    # Draw coastlines and other map features
-    m.drawcoastlines()
-    m.drawcountries()
-    m.drawparallels(np.arange(-60, 91, 10), labels=[1,0,0,0])
-    m.drawmeridians(np.arange(-180, 181, 20), labels=[0,0,0,1])
+    elif data_type == "SoilTexture" or data_type == "LandCover":
+      
+    
 
-    # Create latitude and longitude arrays that match grid
-    lon = np.linspace(-180, 180, data.shape[1])
-    lat = np.linspace(-60, 90, data.shape[0])
-
-    # Convert the latitude and longitude grid to map projection coordinates
-    lon, lat = np.meshgrid(lon, lat)
-    x, y = m(lon, lat)
-
-    # Plot the data
-    mp = m.pcolormesh(x, y, data, shading='auto', cmap='viridis')  # Replace 'data' with your actual data
-
-    # Add colorbar
-    color_bar = m.colorbar(mp, location='right', pad="5%")
-    color_bar.set_label(f"{data_type}")
-
-    # Update labels
-    plt.title(f'{data_type} Data')
-
-    # Save the file to directory in data01
-    plt.savefig(f'/home/dlu12/{data_type}.png')
-    plt.close()
 
 # Define function to process MODIS data
 def process_modis(directory_path):
@@ -136,31 +118,60 @@ def process_modis(directory_path):
             ndvi_grid = np.fromfile(file_path, dtype='<f4')
             ndvi_grid = ndvi_grid.reshape((15000,36000))
 
-            # Intialize lat and lon range for the NWM domain
-            # NWM domain is from 20, 60 lat & -140, -60 lon
-            # Addition is to adjust lat and lon values to match MODIS dataset indices
-            # -60 to 90 N for lat & -180 to 180 E lon
-            lat1 = int((20 + 60) / 0.01)
-            lat2 = int((60 + 60)/ 0.01)
-            lon1 = int((-140 + 180) / 0.01)
-            lon2 = int((-60 + 180) / 0.01)
-
-            # Retrieve the NWM domain through indexing
-            ndvi_grid = ndvi_grid[lat1: lat2, lon1: lon2]
-
-            # Mask -9999
+            # Mask -9999 & exclude values outside of 0-1 range
             ndvi_grid = np.ma.masked_equal(ndvi_grid, -9999)
+            ndvi_grid = np.ma.masked_outside(ndvi_grid, 0, 1)
 
-            #################################################################################
-            # NEED TO FIGURE OUT WHAT TO DO HERE, HOW DO WE STORE EACH OF THE DATA POINTS ###
-             '''
-            sum_modis_y = sum_modis_y + ndvi_grid
-            sum_modis_y2 = sum_modis_y2 + (ndvi_grid ** 2)
-            N = N + 1
 
-            # Append file path to files list for evaluation later
-            file_list.append(file_path)
-            '''
+# Define function to plot data if needed
+def plot(data, data_type):
+    # Calculate & print some summary statistics
+    mean = np.mean(data) 
+    median = np.median(data) 
+    minimum = np.min(data) 
+    maximum = np.max(data) 
+
+    print(f"{data_type} Mean: {mean},")
+    print(f"{data_type} Median: {median},")
+    print(f"{data_type} Min: {minimum},")
+    print(f"{data_type} Max: {maximum}")
+
+    # Plot data to visualize it
+    # Plot the data using matplotlib
+    plt.figure(figsize=(10, 5))
+
+    # Create a Basemap instance
+    m = Basemap(projection='cyl', resolution='c', 
+                llcrnrlat=-60, urcrnrlat=90, 
+                llcrnrlon=-180, urcrnrlon=180)
+
+    # Draw coastlines and other map features
+    m.drawcoastlines()
+    m.drawcountries()
+    m.drawparallels(np.arange(-60, 91, 10), labels=[1,0,0,0])
+    m.drawmeridians(np.arange(-180, 181, 20), labels=[0,0,0,1])
+
+    # Create latitude and longitude arrays that match grid
+    lon = np.linspace(-180, 180, data.shape[1])
+    lat = np.linspace(-60, 90, data.shape[0])
+
+    # Convert the latitude and longitude grid to map projection coordinates
+    lon, lat = np.meshgrid(lon, lat)
+    x, y = m(lon, lat)
+
+    # Plot the data
+    mp = m.pcolormesh(x, y, data, shading='auto', cmap='viridis')  # Replace 'data' with your actual data
+
+    # Add colorbar
+    color_bar = m.colorbar(mp, location='right', pad="5%")
+    color_bar.set_label(f"{data_type}")
+
+    # Update labels
+    plt.title(f'{data_type} Data')
+
+    # Save the file to directory in data01
+    plt.savefig(f'/home/dlu12/{data_type}.png')
+    plt.close()
 
 
 # Main function
