@@ -65,9 +65,29 @@ def read_data(directory_path, files):
               data_5km[i, j] = grid_mean
 
     elif data_type == "SoilTexture" or data_type == "LandCover":
-      
-    
+        # Define the size of each grid (5x5 for converting 1 km to 5 km)
+        grid_size = 5
 
+        # Calculate the dimensions of the new 5 km resolution array
+        # Note: Using the ranges of the domain
+        new_rows = int((90 - (-60)) / 0.05)
+        new_cols = int((180 - (-180)) / 0.05)
+
+        # Initialize an array to store the 5 km data
+        data_5km = np.zeros((new_rows, new_cols), dtype=np.float32)
+
+        # Iterate through each 5x5 grid, calculate the mean, and store in the new array
+        for i in range(new_rows):
+            for j in range(new_cols):
+                # Extract the 5x5 grid
+                grid = data[i*grid_size:(i+1)*grid_size, j*grid_size:(j+1)*grid_size]
+                
+                # Calculate the most frequent value of the 5x5 grid
+                values, counts = np.unique(grid.flatten(), return_counts=True)
+                mode_value = values[np.argmax(counts)]
+                
+                # Assign the mean value to the corresponding position in the 5 km array
+                data_5km[i, j] = mode_value
 
 # Define function to process MODIS data
 def process_modis(directory_path):
