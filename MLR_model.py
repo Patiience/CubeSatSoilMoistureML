@@ -154,7 +154,21 @@ def read_modis(directory_path):
 
 
 # Define function to compute Multiple Linear Regression Model
-def mlr_model(modis_files, ancillary_grids):
+def mlr_model(modis_files, ancillary_grids, actual_SM, alpha):
+  # Initialize the weights & intercept
+  weight_modis = np.zeros((1800,7200))
+  weight_elev = np.zeros((1800,7200))
+  weight_landcov = np.zeros((1800,7200))
+  weight_slopetype = np.zeros((1800,7200))
+  weight_soiltext = np.zeros((1800,7200))
+  intercept = np.zeros((1800,7200))
+
+  # Load in the ancillary data grids
+  elev_5km = ancillary_grids["Elevation"]
+  landcover_5km = ancillary_grids["LandCover"]
+  slopetype_5km = ancillary_grids["SlopeType"]
+  soiltexture_5km = ancillary_grids["SoilTexture"]
+
   # Loop through daily files from MODIS dataset
   # Note: Using i to be able to also retrieve CYGNSS & SNR datasets at the same time
   # which requires the datasets to be the exact same length & dates
@@ -190,7 +204,7 @@ def mlr_model(modis_files, ancillary_grids):
     new_cols = int((180 - (-180)) / 0.05)
 
     # Initialize an array to store the 5 km data
-    data_5km = np.zeros((new_rows, new_cols), dtype=np.float32)
+    modis_5km = np.zeros((new_rows, new_cols), dtype=np.float32)
 
     # Iterate through each 5x5 grid, calculate the mean, and store in the new array
     for i in range(new_rows):
@@ -202,7 +216,30 @@ def mlr_model(modis_files, ancillary_grids):
             grid_mean = np.mean(grid)
             
             # Assign the mean value to the corresponding position in the 5 km array
-            data_5km[i, j] = grid_mean
+            modis_5km[i, j] = grid_mean
+
+    # Calculate the predicted values for all the pixel locations
+    y_pred = ((weight_modis * modis_5km) 
+              + (weight_elev * elev_5km) 
+              + (weight_landcov * landcover_5km) 
+              + (weight_slopetype * slopetype_5km)
+              + (weight_soiltext * soiltexture_5km)
+              + intercept)
+
+    # Calculate the error between Actual & Predicted
+    error = actual_SM - y_pred
+
+    # Update the weights & intercept accordingly based on the error
+    weight_modis += alpha * error * modis_5km
+    weight_elev += alpha * error * elev_5km
+    weight_landcov += alpha * error * landcover_5km
+    weight_slopetype += alpha * error * slopetype_5km
+    weight_soiltext += alpha * error * soiltexture_5km
+    intercept += alpha * error
+
+  
+
+    
 
 
    
@@ -226,5 +263,12 @@ if __name__ == "__main__":
   modis_directory = "/data01/jyin/MODISNDVI/Gapfilling1kmNDVI"
   modis_files = read_modis(modis_directory)
 
+  # Load in the actual data for Soil Moisture Retrievals
+  actual_SM_directory = ""
+  actual_SM = ""
+
+  # Define hyperparameter learning rate
+  alpha = 0.05
+
   # Call function to train SVR model
-  weight, bias = mlr_model(modis_files, grids)
+  weight, bias = mlr_model(modis_files, grids, actual_SM, alpha)
