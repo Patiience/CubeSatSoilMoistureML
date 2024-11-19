@@ -227,7 +227,7 @@ def mlr_model(modis_files, ancillary_grids, actual_SM, alpha):
               + intercept)
 
     # Calculate the error between Actual & Predicted
-    error = actual_SM - y_pred
+    error = actual_SM[i] - y_pred
 
     # Update the weights & intercept accordingly based on the error
     weight_modis += alpha * error * modis_5km
@@ -237,12 +237,100 @@ def mlr_model(modis_files, ancillary_grids, actual_SM, alpha):
     weight_soiltext += alpha * error * soiltexture_5km
     intercept += alpha * error
 
-  
+  # Return the weights and intercept
+  return weight_modis, weight_elev, weight_landcov, weight_slopetype, weight_soiltext, intercept
 
-    
 
+# Define function to test and evaluate the Multiple Linear Regression Model
+def test_model(modis_files, ancillary_grids, actual_SM, weight_modis, weight_elev, weight_landcov, weight_slopetype, weight_soiltext, intercept):
+  # Initialize lists to store MSE values
+  mse_values = []
 
-   
+  # Load in the ancillary data grids
+  elev_5km = ancillary_grids["Elevation"]
+  landcover_5km = ancillary_grids["LandCover"]
+  slopetype_5km = ancillary_grids["SlopeType"]
+  soiltexture_5km = ancillary_grids["SoilTexture"]
+
+  # Loop through daily files from MODIS dataset
+  # Note: Using i to be able to also retrieve CYGNSS & SNR datasets at the same time
+  # which requires the datasets to be the exact same length & dates
+  for i in range(len(modis_files)):
+    # Get the file path
+    modis_path = modis_files[i]
+
+    # Load in data from binary file, pickle & joblib throw errors, so use numpy
+    # Will load it in as a memory map to avoid memory errors
+    modis_grid = np.fromfile(modis_path, dtype='<f4')
+    modis_grid = modis_grid.reshape((15000,36000))
+
+    # Mask -9999 & exclude values outside of 0-1 range
+    modis_grid = np.ma.masked_equal(modis_grid, -9999)
+    modis_grid = np.ma.masked_outside(modis_grid, 0, 1)
+
+    # Adjust domain of grid to match CYGNSS [-45, 45] for latitude
+    lat1 = int((-45 + 60) / 0.01)
+    lat2 = int((45 + 60)/ 0.01)
+    lon1 = int((-180 + 180) / 0.01)
+    lon2 = int((180 + 180) / 0.01)
+
+    # Retrieve the correct domain matching CYGNSS
+    modis_grid = modis_grid[lat1: lat2, lon1: lon2]
+
+    # UPSCALE MODIS DATA TO 5KM
+    # Define the size of each grid (5x5 for converting 1 km to 5 km)
+    grid_size = 5
+
+    # Calculate the dimensions of the new 5 km resolution array
+    # Note: Using the ranges of the domain
+    new_rows = int((45 - (-45)) / 0.05)
+    new_cols = int((180 - (-180)) / 0.05)
+
+    # Initialize an array to store the 5 km data
+    modis_5km = np.zeros((new_rows, new_cols), dtype=np.float32)
+
+    # Iterate through each 5x5 grid, calculate the mean, and store in the new array
+    for i in range(new_rows):
+        for j in range(new_cols):
+            # Extract the 5x5 grid
+            grid = modis_grid[i*grid_size:(i+1)*grid_size, j*grid_size:(j+1)*grid_size]
+            
+            # Calculate the mean of the 5x5 grid
+            grid_mean = np.mean(grid)
+            
+            # Assign the mean value to the corresponding position in the 5 km array
+            modis_5km[i, j] = grid_mean
+
+    # Calculate the predicted values for all the pixel locations
+    y_pred = ((weight_modis * modis_5km) 
+              + (weight_elev * elev_5km) 
+              + (weight_landcov * landcover_5km) 
+              + (weight_slopetype * slopetype_5km)
+              + (weight_soiltext * soiltexture_5km)
+              + intercept)
+
+    # Calculate the error between Actual & Predicted
+    error = actual_SM[i] - y_pred
+    squared_error = error ** 2
+    mean_squared = np.mean(squared_error)
+
+    # Append to MSE values
+    mse_values.append(mean_squared)
+
+  # Calculate overall mean MSE
+  mean_mse = np.mean(mse_values)
+
+  # Plot the MSE values for better visualization
+  plt.figure(figsize=(10, 6))
+  plt.plot(mse_values, marker='o', linestyle='-', color='blue', label='MSE')
+  plt.title('MLR MSE Predictions for SM Retrievals')
+  plt.xlabel('Files (in Chronological Order)')  # Label for the automatically generated x-axis
+  plt.ylabel('MSE')
+  plt.text(0.5, 1.05, f'Mean MSE: {mean_mse}', fontsize=10, ha='center', transform=plt.gca().transAxes) # Add some text regarding Mean MSE
+  plt.grid()
+  plt.legend()
+  plt.tight_layout()
+  plt.savefig('/data01/dlu12/MLR_MSE.png')
 
 
 # Main function
@@ -270,5 +358,8 @@ if __name__ == "__main__":
   # Define hyperparameter learning rate
   alpha = 0.05
 
-  # Call function to train SVR model
-  weight, bias = mlr_model(modis_files, grids, actual_SM, alpha)
+  # Call function to train SVR model and get the weights and intercept
+  weight_modis, weight_elev, weight_landcov, weight_slopetype, weight_soiltext, intercept = mlr_model(modis_files, grids, actual_SM, alpha)
+
+  # Pass in the weights to the testing function to evaluate the model
+  test_model(modis_files, grids, actual_SM, weight_modis, weight_elev, weight_landcov, weight_slopetype, weight_soiltext, intercept)
