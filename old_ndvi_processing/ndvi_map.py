@@ -49,13 +49,13 @@ def create_map(ndvi_grid, file_name):
   plt.title(f'NDVI for {date}')
 
   # Save the file to directory in data01
-  plt.savefig(f'/data01/dlu12/NDVI_Maps/NDVI_{date}.png')
+  plt.savefig(f'/data01/dlu12/NOAA20_TOC_Data/NDVI_TOC_Maps/NDVI_{date}.png')
   plt.close()
 
 # Main function
 if __name__ == "__main__":
   # Directory path for data
-  directory_path = "/data01/dlu12/NDVI_Binaries"
+  directory_path = "/data01/dlu12/NOAA20_TOC_Data/NDVI_TOC_Binaries"
 
   # Loop through files in directory
   for files in os.listdir(directory_path):
@@ -67,7 +67,8 @@ if __name__ == "__main__":
 
     # Load in data from binary file
     with open(file_path, 'rb') as f:
-          ndvi_grid = pickle.load(f)
-    
+      ndvi_grid = pickle.load(f)
+      
     # Call function to create map
     create_map(ndvi_grid, files)
+
