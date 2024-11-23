@@ -37,7 +37,7 @@ def read_map_data(directory_path):
           nc_file = Dataset(file_path)
 
           # Initialize NDVI grid, for 1 km resolution, which divide by .01
-          # NWM domain is from 20, 60 lat & -140, -60 lon
+          # CONUS domain is from 20, 60 lat & -140, -60 lon
           # Note: grid is latitude by longitude
           ndvi_grid = np.zeros((4000, 8000))
 
@@ -82,7 +82,7 @@ def read_map_data(directory_path):
           ndvi_grid[adjusted_x_indices[mask], adjusted_y_indices[mask]] = nc_data[mask]
 
           # For each file, dump into binary file in data01 directory
-          binary_path = '/data01/dlu12/NDVI_Binaries'
+          binary_path = '/data01/dlu12/NOAA20_TOC_Data/NDVI_TOC_Binaries'
           binary_file = f'NOAA20_TOC_NDVI_{date}.dat'
           binary_path = os.path.join(binary_path, binary_file)
 
