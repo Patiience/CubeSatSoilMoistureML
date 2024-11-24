@@ -56,7 +56,7 @@ def read_map_data(directory_path):
     ndvi_grid1 = np.zeros((4000, 8000))
     ndvi_grid2 = np.zeros((4000, 8000))
 
-    # Retrieve NDVI_TOC data, in 2-dimensional (lat, lon)
+    # Retrieve SMNDVI data, in 2-dimensional (lat, lon)
     nc_data1 = nc_file1.variables['SMN'][:]
     nc_data2 = nc_file2.variables['SMN'][:]
 
