@@ -7,6 +7,7 @@ import pickle
 from datetime import datetime, timedelta
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
+import gc
 
 # Function reads data and then dumps into a binary file
 def calc_avg(directory_path):
@@ -14,6 +15,7 @@ def calc_avg(directory_path):
     md_avg = []
     tx_avg = []
     az_avg = []
+    days = []
 
     # Variable to just track when interpolation should begin
     count = 0
@@ -54,13 +56,16 @@ def calc_avg(directory_path):
         nc_file1 = Dataset(file_path1)
         nc_file2 = Dataset(file_path2)
 
+        # Get the start date of only the first file and removing the extra characters behind
+        file_date = str(getattr(nc_file1, 'time_coverage_start', None))[:8]
+
         # Initialize NDVI grid, for 1 km resolution, which divide by .01
         # NWM domain is from 20, 60 lat & -140, -60 lon
         # Note: grid is latitude by longitude
         ndvi_grid1 = np.zeros((4000, 8000))
         ndvi_grid2 = np.zeros((4000, 8000))
 
-        # Retrieve NDVI_TOC data, in 2-dimensional (lat, lon)
+        # Retrieve SMNDVI data, in 2-dimensional (lat, lon)
         nc_data1 = nc_file1.variables['SMN'][:]
         nc_data2 = nc_file2.variables['SMN'][:]
 
@@ -68,11 +73,21 @@ def calc_avg(directory_path):
         nc_data1 = np.array(nc_data1)
         nc_data2 = np.array(nc_data2)
 
+        # Convert to float32 values to reduce space in memory
+        nc_data1 = nc_data1.astype(np.float32)
+        nc_data2 = nc_data2.astype(np.float32)
+
         # Retrive latitude and longitude data, which could be 2D or 1D, but code will get full array regardless
         lat1 = nc_file1.variables['latitude'][:]
         lon1 = nc_file1.variables['longitude'][:]
         lat2 = nc_file2.variables['latitude'][:]
         lon2 = nc_file2.variables['longitude'][:]
+
+        # Convert lat and lon to float32 to reduce space
+        lat1 = lat1.astype(np.float32)
+        lon1 = lon1.astype(np.float32)
+        lat2 = lat2.astype(np.float32)
+        lon2 = lon2.astype(np.float32)
 
         # If array is 1D, make it so it is 2D in order to carry out functions later
         if len(lat1.shape) == 1 and len(lat2.shape) == 1:
@@ -107,6 +122,10 @@ def calc_avg(directory_path):
         # Assign to grid using masked indices, which will get rid of corresponding indices
         ndvi_grid1[adjusted_x_indices1[mask1], adjusted_y_indices1[mask1]] = nc_data1[mask1]
         ndvi_grid2[adjusted_x_indices2[mask2], adjusted_y_indices2[mask2]] = nc_data2[mask2]
+
+        # Mask the value -999 to avoid affect in calculating average
+        ndvi_grid1 = np.ma.masked_equal(ndvi_grid1, -999)
+        ndvi_grid2 = np.ma.masked_equal(ndvi_grid2, -999)
 
         # Delete numpy arrays to free memory
         del adjusted_x_indices1, adjusted_y_indices1, adjusted_x_indices2, adjusted_y_indices2, lat1, lon1, lat2, lon2
@@ -144,6 +163,9 @@ def calc_avg(directory_path):
         az_lon1, az_lon2 = az_lon1 + 14000, az_lon2 + 14000
 
         # HERE DO THE INTERPOLATION METHOD !!!
+        # Initialize Datetime object to add correctly to the date later
+        date_format = "%Y%m%d"
+        start_date_obj = datetime.strptime(file_date, date_format)
 
         # Initialize values for interpolation
         val_week1 = 6
@@ -156,6 +178,10 @@ def calc_avg(directory_path):
             # Prepare values for next interpolation
             val_week1 -= 1
             val_week2 += 1
+
+            # Increment the date accordingly and append to days array
+            date_obj = start_date_obj + timedelta(days=i)
+            days.append(date_obj)
 
             # Assign to grid using masked indices, which will get rid of corresponding indices
             maryland_grid = ndvi_grid_day[md_lat1: md_lat2 + 1, md_lon1: md_lon2 + 1]
@@ -171,6 +197,9 @@ def calc_avg(directory_path):
             md_avg.append(avg_md)
             tx_avg.append(avg_tx)
             az_avg.append(avg_az)
+        
+        # Delete from memory just in case
+        del ndvi_grid_day, maryland_grid, texas_grid, arizona_grid
 
         # Close the files
         nc_file1.close()
@@ -179,44 +208,51 @@ def calc_avg(directory_path):
         # Update file names, now second file will be the start file
         file_name1 = file_name2
 
+        # Force garbage collection to free memory
+        del nc_data1, nc_data2, ndvi_grid1, ndvi_grid2
+        gc.collect()
+
+    # Store the data in binary files
+    # For each data: MD, TX, AZ, dump into binary file in data01 directory
+    binary_path = '/data01/dlu12/AVG_SMNDVI'
+    binary_file = f'SMNDVI_AVG_Maryland.dat'
+    binary_path = os.path.join(binary_path, binary_file)
+
+    with open(binary_path, 'wb') as f:
+        pickle.dump(md_avg, f)
+
+    binary_path = '/data01/dlu12/AVG_SMNDVI'
+    binary_file = f'SMNDVI_AVG_Texas.dat'
+    binary_path = os.path.join(binary_path, binary_file)
+
+    with open(binary_path, 'wb') as f:
+        pickle.dump(tx_avg, f)
+
+    binary_path = '/data01/dlu12/AVG_SMNDVI'
+    binary_file = f'SMNDVI_AVG_Arizona.dat'
+    binary_path = os.path.join(binary_path, binary_file)
+
+    with open(binary_path, 'wb') as f:
+        pickle.dump(az_avg, f)
+
     # After looping through all the files, we have a list of all the averages of each day for each region
-    # Initialize start and end dates, which were seen from files
-    start_date = "2018-01-29"
-    end_date = "2024-04-07"
-
-    # Generate dates for the whole year (daily intervals)
-    days = np.arange(np.datetime64(start_date), np.datetime64(end_date))
-
-    # Plot the first dataset
-    plt.plot(days, md_avg)
+    # Plot the Maryland, Texas, and Arizona dataset
+    plt.plot(days, md_avg, label='Maryland', color='blue')
+    plt.plot(days, tx_avg, label='Texas', color='red')
+    plt.plot(days, az_avg, label='Arizona', color='orange')
     plt.xlabel('Days')
     plt.ylabel('Average SMNDVI')
-    plt.title('Average SMNDVI for Maryland Region from 2018-2024')
-    plt.gca().xaxis.set_major_formatter(mdates.DateFormatter('%b %d'))  # Format as 'Jan 01', 'Feb 15', etc.
+    plt.title('Average SMNDVI for MD, TX, AZ Region from 2018-2024')
+    plt.ylim(0, 1) # Set y-axis to be range from 0 to 1
+    plt.legend() # Add a legend to differentiate the lines
+    plt.gca().xaxis.set_major_formatter(mdates.DateFormatter('%b %d, %Y'))  # Format as 'Jan 01, 2018'
     plt.gcf().autofmt_xdate()
-    plt.savefig('/data01/dlu12/AVG_SMNDVI/Maryland.png')  # Save the first plot
+    plt.savefig('/data01/dlu12/AVG_SMNDVI/All_Regions.png')  # Save the first plot
     plt.clf()  # Clear the current plot
-
-    # Plot the second dataset
-    plt.plot(days, tx_avg)
-    plt.xlabel('Days')
-    plt.ylabel('Average SMNDVI')
-    plt.title('Average SMNDVI for Texas Region from 2018-2024')
-    plt.gca().xaxis.set_major_formatter(mdates.DateFormatter('%b %d'))
-    plt.gcf().autofmt_xdate()
-    plt.savefig('/data01/dlu12/AVG_SMNDVI/Texas.png')  # Save the second plot
-    plt.clf()  # Clear the current plot
-
-    # Plot the third dataset
-    plt.plot(days, az_avg)
-    plt.xlabel('Days')
-    plt.ylabel('Average SMNDVI')
-    plt.title('Average SMNDVI for Arizona Region from 2018-2024')
-    plt.gca().xaxis.set_major_formatter(mdates.DateFormatter('%b %d'))
-    plt.gcf().autofmt_xdate()
-    plt.savefig('/data01/dlu12/AVG_SMNDVI/Arizona.png')  # Save the third plot
-    plt.clf()  # Clear the current plot
-
+    
+    # Close plt
+    plt.close()
+    
 # Main function
 if __name__ == "__main__":
     # Directory path for data
