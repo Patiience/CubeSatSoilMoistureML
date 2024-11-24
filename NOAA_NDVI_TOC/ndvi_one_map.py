@@ -49,16 +49,16 @@ def create_map(ndvi_grid, file_name):
   plt.title(f'NDVI for {date}')
 
   # Save the file to directory in data01
-  plt.savefig(f'/data01/dlu12/NDVI_Maps/NDVI_{date}.png')
+  plt.savefig(f'/data01/dlu12/NOAA20_TOC_Data/NDVI_TOC_Maps/NDVI_{date}.png')
   plt.close()
 
 # Main function
 if __name__ == "__main__":
   # Directory path for data
-  file_path = "/data01/dlu12/NDVI_Binaries"
+  file_path = "/data01/dlu12/NOAA20_TOC_Data/NDVI_TOC_Binaries"
 
   # Retrieve input for year to be mapped from the command line
-  date = str(input("Enter date of directory to be mapped (YYYYMMDD): "))
+  date = str(input("Enter date of file to be mapped (YYYYMMDD): "))
   file_name = f"NOAA20_TOC_NDVI_{date}.dat"
   file_path = os.path.join(file_path, file_name)
 
